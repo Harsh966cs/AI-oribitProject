@@ -1,0 +1,2 @@
+-- User-owned seed data is created by the authenticated onboarding flow.
+-- Keeping this file present makes `supabase db reset` deterministic and warning-free.
