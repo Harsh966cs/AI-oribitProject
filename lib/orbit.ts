@@ -7,6 +7,30 @@ export type Task = {
   priority: TaskPriority;
   status: string;
   createdAt: string;
+  assignedTo?: string | null;
+  updatedAt?: string;
+};
+
+export type WorkspaceMember = {
+  userId: string;
+  email: string;
+  displayName: string;
+  role: "owner" | "admin" | "member";
+};
+
+export type WorkspaceInvitation = {
+  id: string;
+  email: string;
+  role: "admin" | "member";
+  status: "pending" | "accepted" | "revoked";
+  createdAt: string;
+};
+
+export type TaskActivity = {
+  id: string;
+  action: "created" | "updated" | "moved" | "assigned" | "deleted";
+  actorName: string;
+  createdAt: string;
 };
 
 export type BoardColumn = {
@@ -24,6 +48,7 @@ export type Board = {
 
 export type OrbitState = {
   workspaceName: string;
+  workspaceId?: string;
   boards: Board[];
   activeBoardId: string;
 };
@@ -43,6 +68,7 @@ const initialTasks: Task[] = [
     priority: "High",
     status: "in-progress",
     createdAt: "2026-09-20T08:00:00.000Z",
+    assignedTo: null,
   },
   {
     id: "task-invite-team",
@@ -51,6 +77,7 @@ const initialTasks: Task[] = [
     priority: "Medium",
     status: "todo",
     createdAt: "2026-09-21T08:00:00.000Z",
+    assignedTo: null,
   },
   {
     id: "task-map-workflow",
@@ -59,6 +86,7 @@ const initialTasks: Task[] = [
     priority: "No priority",
     status: "backlog",
     createdAt: "2026-09-22T08:00:00.000Z",
+    assignedTo: null,
   },
 ];
 
