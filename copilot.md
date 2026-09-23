@@ -119,6 +119,8 @@ Orbit will provide:
 
 ### Milestone 3 — Collaboration and team management
 
+**Status: Complete**
+
 **Work**
 
 - Add member invitations and team/user management.
@@ -129,6 +131,14 @@ Orbit will provide:
 **Exit criteria**
 
 - Multiple users can collaborate in a workspace with role-appropriate permissions and reliable task updates.
+
+**Implementation notes**
+
+- Workspace profiles, invitations, owner/admin/member roles, task assignment, and task activity are persisted through Supabase.
+- Invitation acceptance is handled by the `accept_workspace_invitation` database function.
+- RLS restricts invitations to owners/admins, protects owners from demotion, and allows task assignment only to members of the same workspace.
+- Task updates use `updated_at` optimistic concurrency checks and roll back local optimistic changes when remote mutations fail.
+- A disposable two-user local Supabase smoke test verified workspace creation, invitation visibility, invitation acceptance, member count, valid assignment, blocked member invitations, and blocked cross-workspace assignment.
 
 **Review checkpoint**
 

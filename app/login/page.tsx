@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -22,7 +24,12 @@ export default function LoginPage() {
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } });
       if (result.error) throw result.error;
-      setMessage(mode === "login" ? "Signed in. You can return to your workspace." : "Check your email to confirm your account.");
+      if (mode === "login") {
+        router.replace("/");
+        router.refresh();
+      } else {
+        setMessage("Check your email to confirm your account.");
+      }
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Authentication failed.");
     } finally {
