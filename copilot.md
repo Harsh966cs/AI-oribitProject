@@ -146,6 +146,8 @@ Orbit will provide:
 
 ### Milestone 4 — Production readiness and product quality
 
+**Status: Complete**
+
 **Work**
 
 - Add validation, accessibility checks, responsive behavior checks, and focused unit/integration tests.
@@ -160,6 +162,14 @@ Orbit will provide:
 **Review checkpoint**
 
 - Confirm production-readiness prerequisites before adding billing, email, and AI integrations.
+
+**Implementation notes**
+
+- A route-level `app/error.tsx` boundary provides safe recovery for unexpected UI errors, logs the original error in the browser, and exposes an accessible retry action.
+- A root-level `app/global-error.tsx` fallback covers failures in the root layout and includes its own document shell so recovery remains available when global styles cannot load.
+- `.env.example`, local development, architecture, and deployment guidance document public Supabase configuration, server-only secrets, build-time environment behavior, migration/reset workflows, and the `npm run check` quality gate.
+- `npm run check` passes lint, TypeScript validation, and the production build on the Milestone 4 branch.
+- Existing two-user validation covers authentication, invitations, acceptance, role restrictions, task permissions, member removal, invitation cleanup, session refresh, and access revocation.
 
 ### Milestone 5 — Billing and transactional email
 

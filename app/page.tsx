@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import {
+  Board,
   BoardColumn,
   createId,
   createInitialState,
@@ -181,9 +182,15 @@ export default function Home() {
     const name = newBoardName.trim();
     if (!name || !activeBoard) return;
     try {
-      const board = remoteMode && supabase
-        ? await createRemoteBoard(supabase, name)
-        : { id: createId("board"), name, columns: activeBoard.columns, tasks: [] };
+      const workspaceId = state.workspaceId;
+      if (remoteMode && !workspaceId) throw new Error("The active workspace could not be identified.");
+      let board: Board;
+      if (remoteMode) {
+        if (!supabase || !workspaceId) throw new Error("The active workspace could not be identified.");
+        board = await createRemoteBoard(supabase, workspaceId, name);
+      } else {
+        board = { id: createId("board"), name, columns: activeBoard.columns, tasks: [] };
+      }
       updateState((current) => ({ ...current, boards: [...current.boards, board], activeBoardId: board.id }));
       setNewBoardName("");
       setIsAddingBoard(false);
@@ -269,7 +276,8 @@ export default function Home() {
       setMembers((current) => [...current, { userId: createId("local-member"), email, displayName: email.split("@")[0], role }]);
       return;
     }
-    await inviteWorkspaceMember(supabase, email, role);
+    if (!state.workspaceId) throw new Error("The active workspace could not be identified.");
+    await inviteWorkspaceMember(supabase, state.workspaceId, email, role);
     setInvitations(await loadWorkspaceInvitations(supabase, state.workspaceId));
   };
 

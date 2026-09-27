@@ -100,12 +100,12 @@ export async function createWorkspaceWithBoard(client: OrbitClient, name: string
   };
 }
 
-export async function createRemoteBoard(client: OrbitClient, name: string): Promise<Board> {
+export async function createRemoteBoard(client: OrbitClient, workspaceId: string, name: string): Promise<Board> {
   const { data: membership, error: membershipError } = await client
     .from("workspace_members")
     .select("workspace_id")
     .eq("user_id", (await client.auth.getUser()).data.user?.id ?? "")
-    .limit(1)
+    .eq("workspace_id", workspaceId)
     .single();
   if (membershipError) throw membershipError;
 
@@ -162,13 +162,13 @@ export async function loadWorkspaceMembers(client: OrbitClient, workspaceId?: st
   if (userError) throw userError;
   if (!userResult.user) return [];
 
-  const { data: membership, error: membershipError } = await client
+  let membershipQuery = client
     .from("workspace_members")
     .select("workspace_id")
-    .eq("user_id", userResult.user.id)
-    .limit(1)
-    .single();
-  if (membershipError && !workspaceId) throw membershipError;
+    .eq("user_id", userResult.user.id);
+  if (workspaceId) membershipQuery = membershipQuery.eq("workspace_id", workspaceId);
+  const { data: membership, error: membershipError } = await membershipQuery.maybeSingle();
+  if (membershipError) throw membershipError;
   const targetWorkspaceId = workspaceId ?? membership?.workspace_id;
   if (!targetWorkspaceId) return [];
 
@@ -199,6 +199,7 @@ export async function loadWorkspaceMembers(client: OrbitClient, workspaceId?: st
 
 export async function inviteWorkspaceMember(
   client: OrbitClient,
+  workspaceId: string,
   email: string,
   role: "admin" | "member",
 ): Promise<void> {
@@ -206,12 +207,13 @@ export async function inviteWorkspaceMember(
   if (userError) throw userError;
   if (!userResult.user) throw new Error("You must sign in before inviting a member.");
 
-  const { data: membership, error: membershipError } = await client
+  const membershipQuery = client
     .from("workspace_members")
     .select("workspace_id")
     .eq("user_id", userResult.user.id)
-    .limit(1)
+    .eq("workspace_id", workspaceId)
     .single();
+  const { data: membership, error: membershipError } = await membershipQuery;
   if (membershipError) throw membershipError;
 
   const { error } = await client.from("workspace_invitations").insert({

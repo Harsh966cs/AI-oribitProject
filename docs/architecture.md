@@ -35,3 +35,9 @@ The installed Next.js 16 package contains documentation examples using `proxy.ts
 - Only values explicitly prefixed with `NEXT_PUBLIC_` may be exposed to the browser.
 - Supabase service-role, Stripe secret, Resend API, and AI provider keys must remain server-only.
 - Validate required production variables at the integration boundary instead of silently falling back.
+- The browser Supabase boundary validates `NEXT_PUBLIC_SUPABASE_URL` and
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` before creating a client and reports a clear
+  configuration error when either value is missing.
+- Unexpected route errors render through `app/error.tsx`, which logs the original
+  error in the browser and provides a retry action without exposing provider or
+  secret details to users.
