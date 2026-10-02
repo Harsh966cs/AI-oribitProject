@@ -26,6 +26,14 @@ export type WorkspaceInvitation = {
   createdAt: string;
 };
 
+export type WorkspaceSubscription = {
+  workspaceId: string;
+  plan: "lite" | "pro";
+  status: "inactive" | "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid";
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+};
+
 export type TaskActivity = {
   id: string;
   action: "created" | "updated" | "moved" | "assigned" | "deleted";
@@ -105,6 +113,31 @@ export const createInitialState = (): OrbitState => ({
 
 export const storageKey = "orbit-local-mvp-v1";
 
+function isTaskPriority(value: unknown): value is TaskPriority {
+  return value === "No priority" || value === "Urgent" || value === "High" || value === "Medium" || value === "Low";
+}
+
+function isBoardColumn(value: unknown): value is BoardColumn {
+  if (!value || typeof value !== "object") return false;
+  const column = value as Partial<BoardColumn>;
+  return typeof column.id === "string" && typeof column.name === "string" && typeof column.color === "string";
+}
+
+function isTask(value: unknown): value is Task {
+  if (!value || typeof value !== "object") return false;
+  const task = value as Partial<Task>;
+  return (
+    typeof task.id === "string" &&
+    typeof task.title === "string" &&
+    typeof task.description === "string" &&
+    isTaskPriority(task.priority) &&
+    typeof task.status === "string" &&
+    typeof task.createdAt === "string" &&
+    (task.assignedTo === undefined || task.assignedTo === null || typeof task.assignedTo === "string") &&
+    (task.updatedAt === undefined || typeof task.updatedAt === "string")
+  );
+}
+
 export function isOrbitState(value: unknown): value is OrbitState {
   if (!value || typeof value !== "object") return false;
   const state = value as Partial<OrbitState>;
@@ -117,7 +150,9 @@ export function isOrbitState(value: unknown): value is OrbitState {
         typeof board.id === "string" &&
         typeof board.name === "string" &&
         Array.isArray(board.columns) &&
-        Array.isArray(board.tasks),
+        board.columns.every(isBoardColumn) &&
+        Array.isArray(board.tasks) &&
+        board.tasks.every(isTask),
     )
   );
 }

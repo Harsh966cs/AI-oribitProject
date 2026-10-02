@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Board, BoardColumn, OrbitState, Task, TaskActivity, TaskPriority, WorkspaceInvitation, WorkspaceMember } from "@/lib/orbit";
+import type { Board, BoardColumn, OrbitState, Task, TaskActivity, TaskPriority, WorkspaceInvitation, WorkspaceMember, WorkspaceSubscription } from "@/lib/orbit";
 import type { Database } from "./database.types";
 
 type OrbitClient = SupabaseClient<Database>;
@@ -141,15 +141,26 @@ export async function createRemoteTask(client: OrbitClient, boardId: string, tas
   return { id: data.id, title: data.title, description: data.description, priority: data.priority as TaskPriority, status: data.column_id, assignedTo: data.assigned_to, createdAt: data.created_at, updatedAt: data.updated_at };
 }
 
-export async function updateRemoteTask(client: OrbitClient, task: Task): Promise<void> {
+export async function updateRemoteTask(client: OrbitClient, task: Task): Promise<Task> {
   let query = client
     .from("tasks")
     .update({ column_id: task.status, title: task.title, description: task.description, priority: task.priority, assigned_to: task.assignedTo ?? null })
     .eq("id", task.id);
   if (task.updatedAt) query = query.eq("updated_at", task.updatedAt);
-  const { data, error } = await query.select("id");
+  const { data, error } = await query
+    .select("id,title,description,priority,column_id,assigned_to,created_at,updated_at")
+    .single();
   if (error) throw error;
-  if (!data?.length) throw new Error("This task changed elsewhere. Refresh the board and try again.");
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    priority: data.priority as TaskPriority,
+    status: data.column_id,
+    assignedTo: data.assigned_to,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
 }
 
 export async function deleteRemoteTask(client: OrbitClient, taskId: string): Promise<void> {
@@ -167,7 +178,7 @@ export async function loadWorkspaceMembers(client: OrbitClient, workspaceId?: st
     .select("workspace_id")
     .eq("user_id", userResult.user.id);
   if (workspaceId) membershipQuery = membershipQuery.eq("workspace_id", workspaceId);
-  const { data: membership, error: membershipError } = await membershipQuery.maybeSingle();
+  const { data: membership, error: membershipError } = await membershipQuery.limit(1).maybeSingle();
   if (membershipError) throw membershipError;
   const targetWorkspaceId = workspaceId ?? membership?.workspace_id;
   if (!targetWorkspaceId) return [];
@@ -197,6 +208,22 @@ export async function loadWorkspaceMembers(client: OrbitClient, workspaceId?: st
   });
 }
 
+export async function loadWorkspaceSubscription(client: OrbitClient, workspaceId: string): Promise<WorkspaceSubscription> {
+  const { data, error } = await client
+    .from("workspace_subscriptions")
+    .select("workspace_id,plan,status,current_period_end,cancel_at_period_end")
+    .eq("workspace_id", workspaceId)
+    .single();
+  if (error) throw error;
+  return {
+    workspaceId: data.workspace_id,
+    plan: data.plan,
+    status: data.status,
+    currentPeriodEnd: data.current_period_end,
+    cancelAtPeriodEnd: data.cancel_at_period_end,
+  };
+}
+
 export async function inviteWorkspaceMember(
   client: OrbitClient,
   workspaceId: string,
@@ -207,22 +234,15 @@ export async function inviteWorkspaceMember(
   if (userError) throw userError;
   if (!userResult.user) throw new Error("You must sign in before inviting a member.");
 
-  const membershipQuery = client
-    .from("workspace_members")
-    .select("workspace_id")
-    .eq("user_id", userResult.user.id)
-    .eq("workspace_id", workspaceId)
-    .single();
-  const { data: membership, error: membershipError } = await membershipQuery;
-  if (membershipError) throw membershipError;
-
-  const { error } = await client.from("workspace_invitations").insert({
-    workspace_id: membership.workspace_id,
-    email: email.toLowerCase(),
-    role,
-    invited_by: userResult.user.id,
+  const response = await fetch("/api/email/invitation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.toLowerCase(), workspaceId, role }),
   });
-  if (error) throw error;
+  const result = await response.json() as { error?: string };
+  if (!response.ok) {
+    throw new Error(result.error ?? "Invitation email could not be sent.");
+  }
 }
 
 async function getCurrentWorkspaceId(client: OrbitClient): Promise<string> {

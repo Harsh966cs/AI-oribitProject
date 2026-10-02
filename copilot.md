@@ -7,7 +7,8 @@ This document turns `prd.md` into an MVP-first implementation sequence for Orbit
 - Next.js 16 App Router starter using TypeScript, React, and Tailwind CSS 4.
 - Product requirements are documented in `prd.md`.
 - The local-first workspace and Kanban MVP is implemented.
-- Billing, email, and AI integrations are not yet implemented.
+- Stripe billing is implemented and validated locally. Transactional email delivery is deferred until after Milestone 6; the app shows a notice instead of attempting delivery.
+- A pre-deployment code review fixed webhook retry state handling, canceled-subscription entitlement leakage, duplicate checkout protection, invitation-email request trust, and authenticated remote-load fallback behavior.
 - `AGENTS.md` requires consulting the installed Next.js documentation before implementation changes.
 
 ## Product direction
@@ -48,12 +49,20 @@ Orbit will provide:
 
 **Implementation notes**
 
+- The billing migration and typed subscription model are now scaffolded with
+  Lite/Pro plan state, webhook-event idempotency, and database-enforced Lite
+  limits.
+- Stripe test-mode checkout, Customer Portal, and signature-verified webhook
+  route boundaries are implemented server-side.
+- Resend welcome and invitation route boundaries are implemented server-side;
+  provider configuration and operational validation remain before completion.
+
 - Architecture and route boundaries are documented in `docs/architecture.md`.
 - Local setup, checks, and reset instructions are documented in `docs/local-development.md`.
 - `.env.example` defines the public configuration boundary; secrets remain server-only and local.
 - Shadcn-compatible configuration is in `components.json`; shared `cn` utilities and a Button primitive live in `lib/utils.ts` and `components/ui/button.tsx`.
 - The installed Next.js package includes `proxy.ts` documentation examples. Orbit uses `proxy.ts` for Supabase session-cookie refresh.
-- Baseline commands are `npm run lint`, `npm run typecheck`, and `npm run build`.
+- Baseline commands are `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
 
 ### Milestone 1 — Local-first workspace and task MVP — Complete
 
@@ -167,25 +176,36 @@ Orbit will provide:
 
 - A route-level `app/error.tsx` boundary provides safe recovery for unexpected UI errors, logs the original error in the browser, and exposes an accessible retry action.
 - A root-level `app/global-error.tsx` fallback covers failures in the root layout and includes its own document shell so recovery remains available when global styles cannot load.
-- `.env.example`, local development, architecture, and deployment guidance document public Supabase configuration, server-only secrets, build-time environment behavior, migration/reset workflows, and the `npm run check` quality gate.
-- `npm run check` passes lint, TypeScript validation, and the production build on the Milestone 4 branch.
+- `.env.example`, local development, architecture, and deployment guidance document public Supabase configuration, server-only secrets, build-time environment behavior, migration/reset workflows, and the `pnpm check` quality gate.
+- `pnpm check` passes lint, TypeScript validation, and the production build on the Milestone 4 branch.
 - Existing two-user validation covers authentication, invitations, acceptance, role restrictions, task permissions, member removal, invitation cleanup, session refresh, and access revocation.
 
-### Milestone 5 — Billing and transactional email
+### Milestone 5 — Billing
+
+**Status: Complete except deferred email delivery**
 
 **Work**
 
 - Integrate Stripe subscriptions for Lite and Pro plans.
 - Model subscription state and enforce plan capabilities on the server.
-- Integrate Resend for welcome and invitation emails.
 - Add billing/account settings.
 - Process webhooks with idempotency and explicit failure handling.
 
 **Exit criteria**
 
-- Subscription state is synchronized safely, gated features behave consistently, and onboarding emails are observable.
+- Subscription state is synchronized safely, gated features behave consistently, and Stripe checkout/webhook boundaries are validated locally.
+- Welcome and invitation email delivery is intentionally deferred until after Milestone 6.
+- Webhook events remain retryable after processing failures, and only active/trialing/past-due subscriptions receive Pro entitlements.
+
+### Deferred after Milestone 6 — Transactional email
+
+- Configure Resend with a verified sender.
+- Re-enable welcome and invitation delivery.
+- Validate provider failures and successful delivery.
 
 ### Milestone 6 — Focused AI feature
+
+**Status: In progress — free local/mock implementation**
 
 **Work**
 
@@ -201,6 +221,17 @@ Orbit will provide:
 **Review checkpoint**
 
 - Review the AI use case, privacy boundaries, cost controls, and success criteria before implementation.
+
+**Current implementation**
+
+- Task editing includes a review/apply/cancel flow for suggested subtasks.
+- `/api/ai/subtasks` authenticates the user, verifies task workspace membership,
+  validates provider output, and returns explicit provider errors.
+- `AI_PROVIDER=mock` is the free default and requires no API key.
+- `AI_PROVIDER=ollama` optionally uses a locally running Ollama model without a
+  paid hosted AI account.
+- Live authenticated validation remains blocked until local Supabase/Docker is
+  available.
 
 ## Dependency order
 
