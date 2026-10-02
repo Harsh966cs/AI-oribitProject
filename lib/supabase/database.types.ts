@@ -49,6 +49,18 @@ export type Database = {
         Update: { id?: string; workspace_id?: string; task_id?: string | null; actor_id?: string; action?: "created" | "updated" | "moved" | "assigned" | "deleted"; metadata?: Record<string, unknown>; created_at?: string };
         Relationships: [];
       };
+      workspace_subscriptions: {
+        Row: { workspace_id: string; stripe_customer_id: string | null; stripe_subscription_id: string | null; plan: "lite" | "pro"; status: "inactive" | "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid"; current_period_end: string | null; cancel_at_period_end: boolean; created_at: string; updated_at: string };
+        Insert: { workspace_id: string; stripe_customer_id?: string | null; stripe_subscription_id?: string | null; plan?: "lite" | "pro"; status?: "inactive" | "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid"; current_period_end?: string | null; cancel_at_period_end?: boolean; created_at?: string; updated_at?: string };
+        Update: { workspace_id?: string; stripe_customer_id?: string | null; stripe_subscription_id?: string | null; plan?: "lite" | "pro"; status?: "inactive" | "trialing" | "active" | "past_due" | "canceled" | "incomplete" | "unpaid"; current_period_end?: string | null; cancel_at_period_end?: boolean; created_at?: string; updated_at?: string };
+        Relationships: [];
+      };
+      stripe_webhook_events: {
+        Row: { id: string; stripe_event_id: string; event_type: string; payload: Record<string, unknown>; processing_status: "pending" | "processing" | "processed"; processed_at: string | null; created_at: string };
+        Insert: { id?: string; stripe_event_id: string; event_type: string; payload: Record<string, unknown>; processing_status?: "pending" | "processing" | "processed"; processed_at?: string | null; created_at?: string };
+        Update: { id?: string; stripe_event_id?: string; event_type?: string; payload?: Record<string, unknown>; processing_status?: "pending" | "processing" | "processed"; processed_at?: string | null; created_at?: string };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
