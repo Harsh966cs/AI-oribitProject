@@ -344,8 +344,9 @@ export default function Home() {
       return;
     }
     if (!state.workspaceId) throw new Error("The active workspace could not be identified.");
-    await inviteWorkspaceMember(supabase, state.workspaceId, email, role);
+    const message = await inviteWorkspaceMember(supabase, state.workspaceId, email, role);
     setInvitations(await loadWorkspaceInvitations(supabase, state.workspaceId));
+    showActionNotice(message);
   };
 
   const revokeInvitation = async (invitationId: string) => {

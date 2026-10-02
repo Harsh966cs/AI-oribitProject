@@ -229,7 +229,7 @@ export async function inviteWorkspaceMember(
   workspaceId: string,
   email: string,
   role: "admin" | "member",
-): Promise<void> {
+): Promise<string> {
   const { data: userResult, error: userError } = await client.auth.getUser();
   if (userError) throw userError;
   if (!userResult.user) throw new Error("You must sign in before inviting a member.");
@@ -239,10 +239,11 @@ export async function inviteWorkspaceMember(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: email.toLowerCase(), workspaceId, role }),
   });
-  const result = await response.json() as { error?: string };
+  const result = await response.json() as { error?: string; message?: string };
   if (!response.ok) {
     throw new Error(result.error ?? "Invitation email could not be sent.");
   }
+  return result.message ?? "Invitation created.";
 }
 
 async function getCurrentWorkspaceId(client: OrbitClient): Promise<string> {
